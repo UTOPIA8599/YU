@@ -80,7 +80,6 @@
             text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
             font-family: 'ZCOOL KuaiLe', cursive;
             will-change: transform, opacity;
-            /* 硬件加速优化 */
             transform: translateZ(0);
         }
         
@@ -88,7 +87,6 @@
             width: 45px;
             height: 45px;
             object-fit: contain;
-            /* 防止图片闪烁 */
             backface-visibility: hidden;
         }
         
@@ -102,6 +100,11 @@
             height: 60px;
         }
         
+        .apple-emoji {
+            font-size: 40px;
+            line-height: 1;
+        }
+        
         .heart {
             position: fixed;
             top: -50px;
@@ -111,7 +114,6 @@
             animation: fall linear forwards;
             text-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
             will-change: transform, opacity;
-            /* 硬件加速优化 */
             transform: translateZ(0);
         }
         
@@ -204,46 +206,56 @@
         const pokeballImage = 'https://i.postimg.cc/Bb7kv3fs/IMG-2520-1.png';
         const gengarImage = 'https://i.postimg.cc/1RpTWMs2/IMG-2524.png';
         const kittyImage = 'https://i.postimg.cc/v8jnxkP0/IMG-2529.png'; // 凯蒂猫图片
+        const appleEmoji = '🍎'; // 苹果表情
         
         // 图片选项
         const imageOptions = [
-            {type: 'xiao', image: xiaoImage},
-            {type: 'fish', image: fishImage},
-            {type: 'fish2', image: fish2Image},
-            {type: 'smallFish', image: smallFishImage},
-            {type: 'kirby', image: kirbyImage},
-            {type: 'pokeball', image: pokeballImage},
-            {type: 'gengar', image: gengarImage},
-            {type: 'kitty', image: kittyImage}
+            {type: 'xiao', image: xiaoImage, isEmoji: false},
+            {type: 'fish', image: fishImage, isEmoji: false},
+            {type: 'fish2', image: fish2Image, isEmoji: false},
+            {type: 'smallFish', image: smallFishImage, isEmoji: false},
+            {type: 'kirby', image: kirbyImage, isEmoji: false},
+            {type: 'pokeball', image: pokeballImage, isEmoji: false},
+            {type: 'gengar', image: gengarImage, isEmoji: false},
+            {type: 'kitty', image: kittyImage, isEmoji: false},
+            {type: 'apple', emoji: appleEmoji, isEmoji: true} // 苹果表情
         ];
         
         // 预加载计数器
         let loadedImages = 0;
-        const totalImages = imageOptions.length;
+        const totalImages = imageOptions.filter(option => !option.isEmoji).length;
         
         // 预加载所有图片
         imageOptions.forEach(option => {
-            const img = new Image();
-            img.onload = () => {
-                loadedImages++;
-                // 当所有图片加载完成时，隐藏加载指示器并初始化应用
-                if (loadedImages === totalImages) {
-                    loadingIndicator.style.display = 'none';
-                    initializeApp();
-                }
-            };
-            img.onerror = () => {
-                loadedImages++;
-                console.error(`Failed to load image: ${option.image}`);
-                // 即使有图片加载失败，也继续初始化
-                if (loadedImages === totalImages) {
-                    loadingIndicator.style.display = 'none';
-                    initializeApp();
-                }
-            };
-            img.src = option.image;
-            preloadArea.appendChild(img);
+            if (!option.isEmoji) {
+                const img = new Image();
+                img.onload = () => {
+                    loadedImages++;
+                    // 当所有图片加载完成时，隐藏加载指示器并初始化应用
+                    if (loadedImages === totalImages) {
+                        loadingIndicator.style.display = 'none';
+                        initializeApp();
+                    }
+                };
+                img.onerror = () => {
+                    loadedImages++;
+                    console.error(`Failed to load image: ${option.image}`);
+                    // 即使有图片加载失败，也继续初始化
+                    if (loadedImages === totalImages) {
+                        loadingIndicator.style.display = 'none';
+                        initializeApp();
+                    }
+                };
+                img.src = option.image;
+                preloadArea.appendChild(img);
+            }
         });
+        
+        // 如果没有图片需要加载，直接初始化应用
+        if (totalImages === 0) {
+            loadingIndicator.style.display = 'none';
+            initializeApp();
+        }
         
         // 初始化应用
         function initializeApp() {
@@ -264,12 +276,6 @@
                     const effect = document.createElement('div');
                     effect.className = 'click-effect';
                     effect.style.display = 'none';
-                    
-                    // 预先创建图片元素
-                    const img = document.createElement('img');
-                    img.className = 'click-effect-img';
-                    effect.appendChild(img);
-                    
                     document.body.appendChild(effect);
                     clickEffectPool.push(effect);
                 }
@@ -315,20 +321,30 @@
                 // 随机选择一个选项
                 const randomOption = imageOptions[Math.floor(Math.random() * imageOptions.length)];
                 
-                // 获取特效中的图片元素
-                const img = effect.querySelector('img');
+                // 清空特效内容
+                effect.innerHTML = '';
                 
-                // 设置图片和类名
-                img.src = randomOption.image;
-                img.alt = randomOption.type;
-                
-                // 根据类型设置不同的类
-                if (randomOption.type === 'kirby' || randomOption.type === 'gengar' || randomOption.type === 'kitty') {
-                    img.className = 'click-effect-img ' + randomOption.type + '-img';
-                } else if (randomOption.type === 'pokeball') {
-                    img.className = 'click-effect-img pokeball-img';
+                if (randomOption.isEmoji) {
+                    // 处理表情符号
+                    effect.innerHTML = randomOption.emoji;
+                    effect.classList.add('apple-emoji');
                 } else {
-                    img.className = 'click-effect-img';
+                    // 处理图片
+                    const img = document.createElement('img');
+                    img.src = randomOption.image;
+                    img.alt = randomOption.type;
+                    
+                    // 根据类型设置不同的类
+                    if (randomOption.type === 'kirby' || randomOption.type === 'gengar' || randomOption.type === 'kitty') {
+                        img.className = 'click-effect-img ' + randomOption.type + '-img';
+                    } else if (randomOption.type === 'pokeball') {
+                        img.className = 'click-effect-img pokeball-img';
+                    } else {
+                        img.className = 'click-effect-img';
+                    }
+                    
+                    effect.appendChild(img);
+                    effect.classList.remove('apple-emoji');
                 }
                 
                 // 设置特效位置
