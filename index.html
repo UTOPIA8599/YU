@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>小鱼的专属网页</title>
+    <title>专属网页</title>
     <!-- 引入可爱字体 -->
     <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
     <style>
@@ -24,7 +24,6 @@
             cursor: pointer;
             overflow-x: hidden;
             position: relative;
-            /* 白色背景 */
             background: #ffffff;
             background-attachment: fixed;
         }
@@ -55,16 +54,13 @@
             height: 120px;
             border-radius: 50%;
             overflow: hidden;
-            /* 去掉粉色边框，只保留阴影 */
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
             transition: all 0.4s ease;
             position: relative;
             cursor: pointer;
         }
         
-        /* 移除头像的悬停缩放效果 */
         .avatar-circle:hover {
-            /* 移除 transform: scale(1.05); */
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
         }
         
@@ -80,30 +76,32 @@
             font-size: 28px;
             font-weight: bold;
             z-index: 10000;
-            animation: floatUp 1.5s ease-out forwards;
+            animation: floatUp 1.2s ease-out forwards;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
             font-family: 'ZCOOL KuaiLe', cursive;
+            will-change: transform, opacity;
+            /* 硬件加速优化 */
+            transform: translateZ(0);
         }
         
         .click-effect-img {
             width: 45px;
             height: 45px;
             object-fit: contain;
+            /* 防止图片闪烁 */
+            backface-visibility: hidden;
         }
         
-        /* 精灵球图片尺寸小一点 */
         .pokeball-img {
             width: 28px;
             height: 28px;
         }
         
-        /* 卡比兽和耿鬼图片尺寸大一点 */
-        .kirby-img, .gengar-img {
+        .kirby-img, .gengar-img, .kitty-img {
             width: 60px;
             height: 60px;
         }
         
-        /* 爱心雨样式 */
         .heart {
             position: fixed;
             top: -50px;
@@ -112,6 +110,9 @@
             pointer-events: none;
             animation: fall linear forwards;
             text-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+            will-change: transform, opacity;
+            /* 硬件加速优化 */
+            transform: translateZ(0);
         }
         
         @keyframes floatUp {
@@ -148,154 +149,266 @@
             padding: 10px 15px;
             border-radius: 20px;
         }
+        
+        #preload-area {
+            position: absolute;
+            left: -9999px;
+            top: -9999px;
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .loading-indicator {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            z-index: 10000;
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div class="fixed-container">
         <div class="avatars-container">
-            <!-- 只保留一个头像，使用新的头像链接 -->
             <div class="avatar-circle" id="avatar">
                 <img src="https://i.postimg.cc/x1kptLvZ/IMG-2515.jpg" alt="头像" class="avatar-img">
             </div>
         </div>
     </div>
     
-   
+    <!-- 预加载区域 -->
+    <div id="preload-area"></div>
+    
+    <!-- 加载指示器 -->
+    <div class="loading-indicator" id="loadingIndicator">
+        正在加载资源，请稍候...
+    </div>
 
     <script>
-        const avatar = document.getElementById('avatar');
+        // 显示加载指示器
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        loadingIndicator.style.display = 'block';
         
-        // 头像点击事件 - 点击一次就触发爱心雨
-        avatar.addEventListener('click', function(e) {
-            e.stopPropagation(); // 阻止事件冒泡
-            
-            // 触发爱心雨
-            createHeartRain();
-            
-            // 头像点击反馈
-            avatar.style.transform = 'scale(1.1)';
-            setTimeout(() => {
-                avatar.style.transform = 'scale(1)';
-            }, 300);
-        });
+        // 预加载所有图片并缓存
+        const preloadArea = document.getElementById('preload-area');
+        const xiaoImage = 'https://i.postimg.cc/7Yb56Nr5/IMG-2517.png';
+        const fishImage = 'https://i.postimg.cc/CxSL8CW1/IMG-2518.png';
+        const fish2Image = 'https://i.postimg.cc/yxH2Gjh5/IMG-2519.png';
+        const smallFishImage = 'https://i.postimg.cc/dt7GXF3Y/IMG-2523.png';
+        const kirbyImage = 'https://i.postimg.cc/cJ8xyDYN/test-1.png';
+        const pokeballImage = 'https://i.postimg.cc/Bb7kv3fs/IMG-2520-1.png';
+        const gengarImage = 'https://i.postimg.cc/1RpTWMs2/IMG-2524.png';
+        const kittyImage = 'https://i.postimg.cc/v8jnxkP0/IMG-2529.png'; // 凯蒂猫图片
         
-        // 页面点击特效
-        document.body.addEventListener('click', function(e) {
-            createClickEffect(e.clientX, e.clientY);
-        });
-        
-        // 创建点击特效的函数
-        function createClickEffect(x, y) {
-            // 图片链接
-            const xiaoImage = 'https://i.postimg.cc/7Yb56Nr5/IMG-2517.png';
-            const fishImage = 'https://i.postimg.cc/CxSL8CW1/IMG-2518.png';
-            const fish2Image = 'https://i.postimg.cc/yxH2Gjh5/IMG-2519.png';
-            const smallFishImage = 'https://i.postimg.cc/dt7GXF3Y/IMG-2523.png';
-            const kirbyImage = 'https://i.postimg.cc/cJ8xyDYN/test-1.png';
-            const pokeballImage = 'https://i.postimg.cc/Bb7kv3fs/IMG-2520-1.png';
-            const gengarImage = 'https://i.postimg.cc/1RpTWMs2/IMG-2524.png';
-            
-            // 选项包括小、鱼、鱼鱼、小鱼、卡比兽、精灵球和耿鬼
-            const options = [
-                {type: 'xiao', image: xiaoImage},
-                {type: 'fish', image: fishImage},
-                {type: 'fish2', image: fish2Image},
-                {type: 'smallFish', image: smallFishImage},
-                {type: 'kirby', image: kirbyImage},
-                {type: 'pokeball', image: pokeballImage},
-                {type: 'gengar', image: gengarImage}
-            ];
-            
-            const randomOption = options[Math.floor(Math.random() * options.length)];
-            
-            // 创建特效元素
-            const effect = document.createElement('div');
-            effect.className = 'click-effect';
-            effect.style.left = (x - 20) + 'px';
-            effect.style.top = (y - 20) + 'px';
-            
-            // 创建图片元素
-            const img = document.createElement('img');
-            img.src = randomOption.image;
-            img.alt = randomOption.type;
-            
-            // 根据类型设置不同的类
-            if (randomOption.type === 'kirby' || randomOption.type === 'gengar') {
-                img.className = 'click-effect-img kirby-img';
-            } else if (randomOption.type === 'pokeball') {
-                img.className = 'click-effect-img pokeball-img';
-            } else {
-                img.className = 'click-effect-img';
-            }
-            
-            effect.appendChild(img);
-            
-            // 随机旋转方向
-            const rotation = Math.random() > 0.5 ? 1 : -1;
-            effect.style.transform = `rotate(${rotation * 5}deg)`;
-            
-            // 添加到页面
-            document.body.appendChild(effect);
-            
-            // 动画结束后移除元素
-            setTimeout(() => {
-                if (effect.parentNode) {
-                    effect.parentNode.removeChild(effect);
-                }
-            }, 1500);
-        }
-        
-        // 爱心表情数组
-        const heartEmojis = [
-            '❤️', '💞', '💓', '💗', '💖', 
-            '🩷', '🧡', '💛', '💚', '🩵', 
-            '💙', '💜', '🖤', '🩶', '🤍', '🤎'
+        // 图片选项
+        const imageOptions = [
+            {type: 'xiao', image: xiaoImage},
+            {type: 'fish', image: fishImage},
+            {type: 'fish2', image: fish2Image},
+            {type: 'smallFish', image: smallFishImage},
+            {type: 'kirby', image: kirbyImage},
+            {type: 'pokeball', image: pokeballImage},
+            {type: 'gengar', image: gengarImage},
+            {type: 'kitty', image: kittyImage}
         ];
         
-        // 创建爱心雨函数
-        function createHeartRain() {
-            // 创建80个爱心
-            for (let i = 0; i < 80; i++) {
-                setTimeout(() => {
-                    createHeart();
-                }, i * 50);
-            }
-        }
+        // 预加载计数器
+        let loadedImages = 0;
+        const totalImages = imageOptions.length;
         
-        // 创建单个爱心
-        function createHeart() {
-            const heart = document.createElement('div');
-            heart.className = 'heart';
-            
-            // 随机选择一个爱心表情
-            const randomHeart = heartEmojis[Math.floor(Math.random() * heartEmojis.length)];
-            heart.innerHTML = randomHeart;
-            
-            // 随机水平位置
-            const left = Math.random() * 100;
-            heart.style.left = left + 'vw';
-            
-            // 随机动画持续时间（3-6秒）
-            const duration = 3 + Math.random() * 3;
-            heart.style.animationDuration = duration + 's';
-            
-            // 随机字体大小
-            const size = 15 + Math.random() * 20;
-            heart.style.fontSize = size + 'px';
-            
-            // 随机旋转角度
-            const rotate = Math.random() * 360;
-            heart.style.transform = `rotate(${rotate}deg)`;
-            
-            // 添加到页面
-            document.body.appendChild(heart);
-            
-            // 动画结束后移除爱心
-            setTimeout(() => {
-                if (heart.parentNode) {
-                    heart.parentNode.removeChild(heart);
+        // 预加载所有图片
+        imageOptions.forEach(option => {
+            const img = new Image();
+            img.onload = () => {
+                loadedImages++;
+                // 当所有图片加载完成时，隐藏加载指示器并初始化应用
+                if (loadedImages === totalImages) {
+                    loadingIndicator.style.display = 'none';
+                    initializeApp();
                 }
-            }, duration * 1000);
+            };
+            img.onerror = () => {
+                loadedImages++;
+                console.error(`Failed to load image: ${option.image}`);
+                // 即使有图片加载失败，也继续初始化
+                if (loadedImages === totalImages) {
+                    loadingIndicator.style.display = 'none';
+                    initializeApp();
+                }
+            };
+            img.src = option.image;
+            preloadArea.appendChild(img);
+        });
+        
+        // 初始化应用
+        function initializeApp() {
+            const avatar = document.getElementById('avatar');
+            
+            // 对象池 - 复用DOM元素
+            const clickEffectPool = [];
+            const heartPool = [];
+            let activeClickEffects = 0;
+            let activeHearts = 0;
+            const MAX_CLICK_EFFECTS = 30;
+            const MAX_HEARTS = 50;
+            
+            // 初始化对象池
+            function initializePools() {
+                // 初始化点击特效池
+                for (let i = 0; i < MAX_CLICK_EFFECTS; i++) {
+                    const effect = document.createElement('div');
+                    effect.className = 'click-effect';
+                    effect.style.display = 'none';
+                    
+                    // 预先创建图片元素
+                    const img = document.createElement('img');
+                    img.className = 'click-effect-img';
+                    effect.appendChild(img);
+                    
+                    document.body.appendChild(effect);
+                    clickEffectPool.push(effect);
+                }
+                
+                // 初始化爱心池
+                for (let i = 0; i < MAX_HEARTS; i++) {
+                    const heart = document.createElement('div');
+                    heart.className = 'heart';
+                    heart.style.display = 'none';
+                    document.body.appendChild(heart);
+                    heartPool.push(heart);
+                }
+            }
+            
+            // 头像点击事件 - 点击一次就触发爱心雨
+            avatar.addEventListener('click', function(e) {
+                e.stopPropagation();
+                
+                // 触发爱心雨
+                createHeartRain();
+                
+                // 头像点击反馈
+                avatar.style.transform = 'scale(1.1)';
+                setTimeout(() => {
+                    avatar.style.transform = 'scale(1)';
+                }, 300);
+            });
+            
+            // 页面点击特效
+            document.body.addEventListener('click', function(e) {
+                createClickEffect(e.clientX, e.clientY);
+            });
+            
+            // 创建点击特效的函数 - 优化版本
+            function createClickEffect(x, y) {
+                // 如果已达到最大数量，跳过
+                if (activeClickEffects >= MAX_CLICK_EFFECTS) return;
+                
+                // 从对象池获取一个可用的特效元素
+                const effect = clickEffectPool.find(el => el.style.display === 'none');
+                if (!effect) return;
+                
+                // 随机选择一个选项
+                const randomOption = imageOptions[Math.floor(Math.random() * imageOptions.length)];
+                
+                // 获取特效中的图片元素
+                const img = effect.querySelector('img');
+                
+                // 设置图片和类名
+                img.src = randomOption.image;
+                img.alt = randomOption.type;
+                
+                // 根据类型设置不同的类
+                if (randomOption.type === 'kirby' || randomOption.type === 'gengar' || randomOption.type === 'kitty') {
+                    img.className = 'click-effect-img ' + randomOption.type + '-img';
+                } else if (randomOption.type === 'pokeball') {
+                    img.className = 'click-effect-img pokeball-img';
+                } else {
+                    img.className = 'click-effect-img';
+                }
+                
+                // 设置特效位置
+                effect.style.left = (x - 20) + 'px';
+                effect.style.top = (y - 20) + 'px';
+                
+                // 随机旋转方向
+                const rotation = Math.random() > 0.5 ? 1 : -1;
+                effect.style.transform = `rotate(${rotation * 5}deg) translateZ(0)`;
+                
+                // 显示特效
+                effect.style.display = 'block';
+                activeClickEffects++;
+                
+                // 动画结束后重置元素
+                setTimeout(() => {
+                    effect.style.display = 'none';
+                    activeClickEffects--;
+                }, 1200); // 缩短动画时间
+            }
+            
+            // 爱心表情数组
+            const heartEmojis = [
+                '❤️', '💞', '💓', '💗', '💖', 
+                '🩷', '🧡', '💛', '💚', '🩵', 
+                '💙', '💜', '🖤', '🩶', '🤍', '🤎'
+            ];
+            
+            // 创建爱心雨函数
+            function createHeartRain() {
+                // 创建40个爱心（减少数量以提高性能）
+                for (let i = 0; i < 40; i++) {
+                    setTimeout(() => {
+                        createHeart();
+                    }, i * 60); // 增加间隔时间
+                }
+            }
+            
+            // 创建单个爱心
+            function createHeart() {
+                // 如果已达到最大数量，跳过
+                if (activeHearts >= MAX_HEARTS) return;
+                
+                // 从对象池获取一个可用的爱心元素
+                const heart = heartPool.find(el => el.style.display === 'none');
+                if (!heart) return;
+                
+                // 随机选择一个爱心表情
+                const randomHeart = heartEmojis[Math.floor(Math.random() * heartEmojis.length)];
+                heart.innerHTML = randomHeart;
+                
+                // 随机水平位置
+                const left = Math.random() * 100;
+                heart.style.left = left + 'vw';
+                
+                // 随机动画持续时间（2-4秒）
+                const duration = 2 + Math.random() * 2;
+                heart.style.animationDuration = duration + 's';
+                
+                // 随机字体大小
+                const size = 15 + Math.random() * 20;
+                heart.style.fontSize = size + 'px';
+                
+                // 随机旋转角度
+                const rotate = Math.random() * 360;
+                heart.style.transform = `rotate(${rotate}deg) translateZ(0)`;
+                
+                // 显示爱心
+                heart.style.display = 'block';
+                activeHearts++;
+                
+                // 动画结束后重置爱心
+                setTimeout(() => {
+                    heart.style.display = 'none';
+                    activeHearts--;
+                }, duration * 1000);
+            }
+            
+            // 初始化对象池
+            initializePools();
         }
     </script>
 </body>
